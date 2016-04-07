@@ -1,9 +1,26 @@
+'''
+Mini FRC Drivers Station
+
+
+Requirements:
+Made in Python 3.4
+Uses Pygame and Bluetooth
+
+This program is for grabbing data from joysticks to control arduinos connected to bluetooth
+
+Todo List:
+- Actually connect over bluetooth
+- set up grabbing values from the detected joysticks
+- clean up functions/create new functions
+- don't break it
+
+'''
 import bluetooth
 import time
 import _thread as thread
 import pygame
 
-searchtime = 2
+searchtime = 5 #how long we look for bluetooth devices
 
 def loading(s,randint):
     pygame.joystick.init()
@@ -32,6 +49,10 @@ def findDevices():
 
 print("MiniFRC Driver Station v1.0\n")
 print("Booting...",end="")
-joysticks = thread.start_new_thread(loading,(searchtime,1))
-devices = findDevices()
+joysticks = thread.start_new_thread(loading,(searchtime,1)) #grabs connected joysticks with pygame while bluetooth is still searching in the main thread
+devices = findDevices() #finds bluetooth devices
+
+
+
+
 
