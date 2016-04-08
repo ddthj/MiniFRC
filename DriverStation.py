@@ -20,9 +20,10 @@ import time
 import _thread as thread
 import pygame
 
-searchtime = 5 #how long we look for bluetooth devices
+searchtime = 5 #how long we look for bluetooth devices, less than 4 seems to be unreliable
 
 def loading(s,randint):
+    pygame.init()
     pygame.joystick.init()
     joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
     while s+1 > 0:
@@ -30,7 +31,7 @@ def loading(s,randint):
         time.sleep(1)
         s -=1
     
-    print("\nDetected %s joysticks: " % (pygame.joystick.get_count())+str(joysticks)+"\n")
+    print("\nDetected %s joystick(s): " % (pygame.joystick.get_count())+str(joysticks)+"\n")
     thread.exit()
     
 
@@ -47,7 +48,7 @@ def findDevices():
                 print(str(i)+": %s - %s" % (addr, name.encode('utf-8', 'replace')))
         return nearby_devices
     except:
-        print("\nError finding robots")
+        print("\nError finding available robots")
 
 print("MiniFRC Driver Station v1.0\n")
 print("Booting...",end="")
@@ -57,14 +58,14 @@ devices = findDevices() #finds bluetooth devices
 for i in range(pygame.joystick.get_count()):
     joystick = pygame.joystick.Joystick(i)
     joystick.init()
-    #print(str(joystick))
+    for i in range(0,5):
+        events = pygame.event.get()
+        time.sleep(0.1)
+        #here we are updating the pygame events over and over to attempt to get joystick axis values
 
-    # Get the name from the OS for the controller/joystick
     name = joystick.get_name()
     print("\n\nJoystick name: %s" % (name))
     
-    # Usually axis run in pairs, up/down for one, and left/right for
-    # the other.
     axes = joystick.get_numaxes()
     print("Num of axes: %s" % (axes))
     
@@ -87,12 +88,53 @@ for i in range(pygame.joystick.get_count()):
     for l in range( hats ):
         hat = joystick.get_hat( l )
         print("Hat %s value: %s" % (l, hat))
+
+#
+#
+'''
+This is where we begin the user setup of the driver station.
+We have a list of joysticks and a list of bluetooth devices that the user must select/configure
+'''
+#
+#
+
+robot = devices[int(input("Which device above is your robot? (enter number)"))-1]
+
+driver_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+driver_socket.connect((str(robot[0]),7))
+print("Connected!")
+driver_socket.send("a")
+print("Sent Message!")
+driver_socket.close()
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+#Debuging controller axis stuff:
+
 if pygame.joystick.get_count() >0:
     joystick_one = pygame.joystick.Joystick(0)
+    joystick_one.init()
+
+
 while 1:
-    axis = joystick.get_axis(1)
+    for event in pygame.event.get():
+            if event.type==pygame.QUIT:
+                pygame.quit()
+                os._exit(1)
+    axis = joystick_one.get_hat(0)
     print(axis)
-    
+    time.sleep(0.05)
+'''
   
     
     
