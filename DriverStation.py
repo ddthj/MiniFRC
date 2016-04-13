@@ -9,51 +9,30 @@ Uses Pygame and Bluetooth
 This program is for grabbing data from joysticks to control arduinos connected to bluetooth
 
 Todo List:
-- Actually connect over bluetooth
-- set up grabbing values from the detected joysticks
-- clean up functions/create new functions
-- don't break it
+- Actually connect over bluetooth -DONE
+- set up grabbing values from the detected joysticks -DONE
+- clean up functions/create new functions - NO
+- don't break it - MAYBE
 
 '''
-import bluetooth
+
+#
+#
+'''
+This inits the joysticks and pygame, also tells user the current joystick setup
+'''
+#
+#
+
+import serial
 import time
-import _thread as thread
 import pygame
-
-searchtime = 5 #how long we look for bluetooth devices, less than 4 seems to be unreliable
-
-def loading(s,randint):
-    pygame.init()
-    pygame.joystick.init()
-    joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
-    while s+1 > 0:
-        print(" .",end="")
-        time.sleep(1)
-        s -=1
-    
-    print("\nDetected %s joystick(s): " % (pygame.joystick.get_count())+str(joysticks)+"\n")
-    thread.exit()
-    
-
-def findDevices():
-    try:
-        nearby_devices = bluetooth.discover_devices(duration=searchtime, lookup_names=True, flush_cache=True, lookup_class=False)
-        print("\n\nFound %d devices" % len(nearby_devices))
-        i = 0
-        for addr, name in nearby_devices:
-            i+=1
-            try:
-                print(str(i)+": %s - %s" % (addr, name))
-            except UnicodeEncodeError:
-                print(str(i)+": %s - %s" % (addr, name.encode('utf-8', 'replace')))
-        return nearby_devices
-    except:
-        print("\nError finding available robots")
-
 print("MiniFRC Driver Station v1.0\n")
-print("Booting...",end="")
-thread.start_new_thread(loading,(searchtime,1)) #grabs connected joysticks with pygame while bluetooth is still searching in the main thread
-devices = findDevices() #finds bluetooth devices
+print("Booting...")
+pygame.init()
+pygame.joystick.init()
+joysticks = [pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
+print("\nDetected %s joystick(s): " % (pygame.joystick.get_count())+str(joysticks)) 
 
 for i in range(pygame.joystick.get_count()):
     joystick = pygame.joystick.Joystick(i)
@@ -64,7 +43,7 @@ for i in range(pygame.joystick.get_count()):
         #here we are updating the pygame events over and over to attempt to get joystick axis values
 
     name = joystick.get_name()
-    print("\n\nJoystick name: %s" % (name))
+    print("\nJoystick name: %s" % (name))
     
     axes = joystick.get_numaxes()
     print("Num of axes: %s" % (axes))
@@ -89,23 +68,48 @@ for i in range(pygame.joystick.get_count()):
         hat = joystick.get_hat( l )
         print("Hat %s value: %s" % (l, hat))
 
+
 #
 #
 '''
-This is where we begin the user setup of the driver station.
-We have a list of joysticks and a list of bluetooth devices that the user must select/configure
+This is where we begin talking to the robot
+
+We grab the axis from the first joystick and package it to be sent the the arduino
 '''
 #
 #
 
-robot = devices[int(input("Which device above is your robot? (enter number)"))-1]
 
-driver_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-driver_socket.connect((str(robot[0]),7))
-print("Connected!")
-driver_socket.send("a")
-print("Sent Message!")
-driver_socket.close()
+if pygame.joystick.get_count() >0:
+    com = "COM"
+    com += str(input("Please enter the robot COM port: "))
+    try:
+        s = serial.Serial(str(com), 9600,timeout = None)
+        print("Connected to robot!")
+        joystick_one = pygame.joystick.Joystick(0)
+        joystick_one.init()
+        axes = joystick.get_numaxes()
+        Clock = pygame.time.Clock()
+        while 1:
+            Clock.tick(20)
+            events = pygame.event.get()
+            package = ""
+            for j in range( axes ):
+                package += str(joystick.get_axis( j ))
+                package +=";"
+            s.write(bytes(package,'utf-8'))
+            
+
+            '''
+            message = s.read(size = 128)
+            if message != b'':
+                print(str(message))
+            '''
+    except Exception as e:
+        print("Couldn't connect to the robot on this port, here's the problem: \n\n"+str(e))
+
+else:
+    print("No joysticks found, closing...")
 
 
 
@@ -114,27 +118,25 @@ driver_socket.close()
 
 
 
-
-
-
-
-'''
 #Debuging controller axis stuff:
+#0 - left/right
+#1 - forward/backward
+#2 - throttle
+#3 - yaw
 
+'''
 if pygame.joystick.get_count() >0:
     joystick_one = pygame.joystick.Joystick(0)
     joystick_one.init()
+    axes = joystick.get_numaxes()
+    while 1:
+        time.sleep(0.2)
+        events = pygame.event.get()
+        print("\n\n")
+        for j in range( axes ):
+            axis = joystick_one.get_axis( j )
+            print("Axis %s value: %s" % (j, axis) )
 
-
-while 1:
-    for event in pygame.event.get():
-            if event.type==pygame.QUIT:
-                pygame.quit()
-                os._exit(1)
-    axis = joystick_one.get_hat(0)
-    print(axis)
-    time.sleep(0.05)
 '''
-  
     
     
