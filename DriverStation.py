@@ -1,29 +1,12 @@
 '''
 Mini FRC Drivers Station
 
-
 Requirements:
 Made in Python 3.4
-Uses Pygame and Bluetooth
+Uses Pygame and Pyserial
 
 This program is for grabbing data from joysticks to control arduinos connected to bluetooth
-
-Todo List:
-- Actually connect over bluetooth -DONE
-- set up grabbing values from the detected joysticks -DONE
-- clean up functions/create new functions - NO
-- don't break it - MAYBE
-
 '''
-
-#
-#
-'''
-This inits the joysticks and pygame, also tells user the current joystick setup
-'''
-#
-#
-
 import serial
 import time
 import pygame
@@ -40,8 +23,6 @@ for i in range(pygame.joystick.get_count()):
     for i in range(0,5):
         events = pygame.event.get()
         time.sleep(0.1)
-        #here we are updating the pygame events over and over to attempt to get joystick axis values
-
     name = joystick.get_name()
     print("\nJoystick name: %s" % (name))
     
@@ -58,9 +39,7 @@ for i in range(pygame.joystick.get_count()):
     for k in range( buttons ):
         button = joystick.get_button( k )
         print("Button %s value: %s"%(k,button))
-        
-    # Hat switch. All or nothing for direction, not like joysticks.
-    # Value comes back in an array.
+
     hats = joystick.get_numhats()
     print("Number of hats: %s" % (hats))
     
@@ -68,75 +47,28 @@ for i in range(pygame.joystick.get_count()):
         hat = joystick.get_hat( l )
         print("Hat %s value: %s" % (l, hat))
 
-
-#
-#
-'''
-This is where we begin talking to the robot
-
-We grab the axis from the first joystick and package it to be sent the the arduino
-'''
-#
-#
-
-
-if pygame.joystick.get_count() >0:
+if pygame.joystick.get_count() >=0:
     com = "COM"
     com += str(input("Please enter the robot COM port: "))
     try:
-        s = serial.Serial(str(com), 9600,timeout = None)
+        s = serial.Serial(str(com), 9600,timeout = 2)
         print("Connected to robot!")
         joystick_one = pygame.joystick.Joystick(0)
         joystick_one.init()
         axes = joystick.get_numaxes()
         Clock = pygame.time.Clock()
         while 1:
-            Clock.tick(20)
             events = pygame.event.get()
             package = ""
             for j in range( axes ):
-                package += str(joystick.get_axis( j ))
-                package +=";"
+                package += (str(round(joystick.get_axis( j ),1)) +";")
+            print(package)
             s.write(bytes(package,'utf-8'))
-            
-
-            '''
-            message = s.read(size = 128)
-            if message != b'':
-                print(str(message))
-            '''
+            Clock.tick(20)
     except Exception as e:
         print("Couldn't connect to the robot on this port, here's the problem: \n\n"+str(e))
 
 else:
     print("No joysticks found, closing...")
 
-
-
-
-
-
-
-
-#Debuging controller axis stuff:
-#0 - left/right
-#1 - forward/backward
-#2 - throttle
-#3 - yaw
-
-'''
-if pygame.joystick.get_count() >0:
-    joystick_one = pygame.joystick.Joystick(0)
-    joystick_one.init()
-    axes = joystick.get_numaxes()
-    while 1:
-        time.sleep(0.2)
-        events = pygame.event.get()
-        print("\n\n")
-        for j in range( axes ):
-            axis = joystick_one.get_axis( j )
-            print("Axis %s value: %s" % (j, axis) )
-
-'''
-    
     
