@@ -1,5 +1,5 @@
 '''
-Mini FRC Drivers Station
+Mini FRC Drivers Station V1.1
 
 Requirements:
 Made in Python 3.4
@@ -47,24 +47,25 @@ for i in range(pygame.joystick.get_count()):
         hat = joystick.get_hat( l )
         print("Hat %s value: %s" % (l, hat))
 
-if pygame.joystick.get_count() >=0:
+if pygame.joystick.get_count() >0:
     com = "COM"
     com += str(input("Please enter the robot COM port: "))
     try:
-        s = serial.Serial(str(com), 9600,timeout = 2)
+        s = serial.Serial(str(com), 9600,timeout = 2) #we pretend the robot is on a usb port
         print("Connected to robot!")
-        joystick_one = pygame.joystick.Joystick(0)
+        joystick_one = pygame.joystick.Joystick(0) #initiate first joystick
         joystick_one.init()
         axes = joystick.get_numaxes()
         Clock = pygame.time.Clock()
         while 1:
-            events = pygame.event.get()
+            events = pygame.event.get() #update pygame internally
             package = ""
             for j in range( axes ):
                 package += (str(round(joystick.get_axis( j ),1)) +";")
+            #package+= str(joystick.get_button(0)) + ";"     this is an example of adding buttons to the package
             print(package)
             s.write(bytes(package,'utf-8'))
-            Clock.tick(20)
+            Clock.tick(20) #driver station tested and run at 20FPS, results may vary at other framerates.
     except Exception as e:
         print("Couldn't connect to the robot on this port, here's the problem: \n\n"+str(e))
 
