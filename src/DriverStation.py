@@ -203,6 +203,7 @@ class driver:
         self.g.log("MiniFRC Driver Station v%s"%(str(version)))
 
         #config things
+        self.legacy_packet = False
         self.enable_joysticks = False
         self.baudrate = 9600
         self.precision = 1
@@ -233,6 +234,10 @@ class driver:
                     if line.lower().find("true") != -1:
                         self.autoport = True
                         self.g.log("[INFO] AutoPort Enabled, Driver Station will attempt to connect to robot over multiple ports if needed")
+                elif line.find("LEGACY") != -1:
+                    if line.lower().find("true") != -1:
+                        self.legacy_packet = True
+                        self.g.log("[INFO] Legacy Packets are enabled.")
                 elif line.find("BAUD") != -1:
                     self.baudrate = int(line.split("=")[1])
                     self.g.log("[INFO] Configured baudrate to %s"%(self.baudrate))
@@ -276,6 +281,9 @@ class driver:
             self.g.log("[INFO] Enabled joysticks")
             pygame.joystick.init()
             self.joysticks =[pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
+            if len(self.joysticks) < 1:
+                self.g.log("[WARNING] Joysticks enabled but no joystick was found",self.g.red)
+                self.error("No joysticks found")
             for item in self.joysticks: item.init()
             for i in range(3):
                 pygame.event.get()
@@ -321,13 +329,13 @@ class driver:
                     keys.append(event)
 
             #create the pack to send to the bot
-            pack = "a"
+            pack = "z" if self.legacy_packet else "a"
             for item in self.inputs:
                 if isinstance(item,Joy):
                     pack += str(item.get(self.joysticks,self.precision))+';'
                 else:
                     pack += str(item.get(keys)) + ';'
-            pack += 'z'
+            pack += 'z' if not self.legacy_packet else ""
 
             #send it
             if self.mode == 1:
@@ -364,16 +372,18 @@ class driver:
         except:
             self.g.log("[WARNING] Could not connect to robot on specified COM port",self.g.red)
 
-        if self.autoport == True:
+        if self.autoport == True and reconnect == False:
             for i in range(1,15):
                 com = "COM" + str(i)
                 try:
                     s = serial.Serial(com,self.baudrate,write_timeout = 0.1)
+                    self.com = com
                     return s
                 except:
                     self.g.log("[WARNING] Could not connect to robot on %s"%(com),self.g.red)
         if not reconnect:
             self.g.log("[WARNING] Could not connect to robot on ANY port",self.g.red)
+            self.error("Unable to connect to robot")
         if reconnect:
             return self.connect(True)
 
@@ -381,7 +391,17 @@ class driver:
     def error(self,e,kill=True):
         self.g.log("[WARNING] Error logged as: %s"%(e), self.g.red)
         if kill:
-            self.g.bail()
-            sys.exit()
+            self.g.log("[INFO] Driver Station has stopped, press any key to exit.", self.g.orange)
+            self.g.render_stack()
+            pygame.display.update()
+            while True:
+                kill = False
+                events = pygame.event.get()
+                for event in events:
+                    if event.type == pygame.QUIT :
+                        kill = True
+                if any(pygame.key.get_pressed()) or kill == True:
+                    self.g.bail()
+                    sys.exit()
 
 cool = driver()

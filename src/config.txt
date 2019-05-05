@@ -7,7 +7,6 @@
 COM = test
 
 //AUTOPORT will automatically attempt to connect to the robot over multiple COM ports if the specified one fails
-//AUTOPORT = true
 AUTOPORT = false
 
 //BAUD selects the serial baudrate to use, 9600 is default for the HC-06
@@ -18,15 +17,17 @@ PRECISION = 2
 
 //JOYSTICK enables the use of joysticks. This can be turned off to save some performance when not using joysticks
 //This will automatically enable if any joystick-controlled inputs are present
-//JOYSTICK = false
 JOYSTICK = false
+
+//LEGACY mode allows the driver station to work with bots that previously used the MiniFRC-2017 Driver Station
+LEGACY = false
 
 //Here is where you can define the inputs that will be sent to the robot
 //There are keyboard axes and buttons, joystick axes buttons and hats
 //The joystick numberings are printed to console when in test mode with joysticks enabled
 
-axis,Forward,0,1
-axis, Left ,0 , 3
+axis,Forward,w,s
+axis,Left,a,d
 
 
 //Button Examples:
@@ -37,5 +38,6 @@ axis, Left ,0 , 3
 //axis, my_axis_name, <positive key>, <negative key>
 //axis, my_axis_name, <joystick number>, <joystick axis number>
 
+//Warning: Hats are untested and won't render
 //Hats Example:
 //hat, my_hat_name, <joystick number>, <hat number>
