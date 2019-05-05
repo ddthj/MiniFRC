@@ -381,7 +381,6 @@ class driver:
                     self.com = com
                     return s
                 except:
-                    s.close()
                     time.sleep(0.2)
                     self.g.log("[WARNING] Could not connect to robot on %s"%(com),self.g.red)
         if not reconnect:
