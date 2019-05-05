@@ -369,8 +369,9 @@ class driver:
                 if reconnect:
                     self.g.log("[INFO] Reconnected! GoGoGo!",self.g.green)
                 return s
-        except:
+        except Exception as e:
             self.g.log("[WARNING] Could not connect to robot on specified COM port",self.g.red)
+            self.error(e,False)
 
         if self.autoport == True and reconnect == False:
             for i in range(1,15):
@@ -380,6 +381,8 @@ class driver:
                     self.com = com
                     return s
                 except:
+                    s.close()
+                    time.sleep(0.2)
                     self.g.log("[WARNING] Could not connect to robot on %s"%(com),self.g.red)
         if not reconnect:
             self.g.log("[WARNING] Could not connect to robot on ANY port",self.g.red)
