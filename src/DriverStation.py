@@ -167,18 +167,18 @@ class Key:
 
 #keeps track of joystick inputs
 class Joy:
-    def __init__(self,mode,name,arg):
+    def __init__(self,mode,name,num,index):
         self.name = name
-        self.joynum = args[0]
+        self.joynum = int(num)
         self.mode = mode#0=joybutton,1=joyaxis,2=joyhat
-        self.index = arg
-        self.value = 0
+        self.index = int(index)
+        self.value = 0.0
     def get(self,joysticks,prec):
         if self.mode == 0:
-            self.value = str(joysticks[self.joynum].get_button(self.index),prec)
+            self.value = joysticks[self.joynum].get_button(self.index),prec
             return self.value
         elif self.mode == 1:
-            self.value = str(round(joysticks[self.joynum].get_axis(self.index),prec))
+            self.value = round(joysticks[self.joynum].get_axis(self.index),prec)
             return self.value
         else:
             self.value = joysticks[self.joynum].get_hat(self.index)
@@ -222,7 +222,6 @@ class driver:
         #parse config file
         try:
             for line in raw:
-                print(line)
                 if line.find("COM") != -1:
                     self.com = line.replace("=","")
                     if line.find("test") != -1:
@@ -265,33 +264,36 @@ class driver:
                     data = line.split(",")
                     self.enable_joysticks = True
                     self.inputs.append(Joy(2,data[1],data[2],data[3]))
-                    self.g.log("[INFO] Added a hat switch controlled by joystick #%s hat #%s" %(data[2],data[3]))
+                    self.g.log("[INFO] Added a hat switch controlled by joystick #%s hat #%s" %(data[2],data[3]))  
         except Exception as e:
             self.g.log("[WARNING] Improperly formatted config file",self.g.red)
             self.error(e)
-
+        
         #prep joysticks if enabled
         if self.enable_joysticks == False:
             self.g.log("[INFO] Joysticks not enabled")
         else:
             self.g.log("[INFO] Enabled joysticks")
             pygame.joystick.init()
-            pygame.event.get()
             self.joysticks =[pygame.joystick.Joystick(x) for x in range(pygame.joystick.get_count())]
+            for item in self.joysticks: item.init()
+            for i in range(3):
+                pygame.event.get()
+                time.sleep(0.1)
             #display all joystick data if test mode is enabled
             if self.mode == 0:
                 self.g.log("[INFO] Detected %s joystick(s)" % (len(self.joysticks)))
                 for joystick in self.joysticks:
                     self.g.log("[INFO] Joystick '%s'"%(joystick.get_name()))
-                    axes = joystick.numaxes()
+                    axes = joystick.get_numaxes()
                     self.g.log("[INFO] Number of axes: %s"%(axes))
-                    for i in range(axes): self.g.log("  [INFO] Axis %s value: %s") % (i,joystick.get_axis(i))
-                    buttons = joystick.numbuttons()
+                    for i in range(axes): self.g.log("  [INFO] Axis %s value: %s" % (i,joystick.get_axis(i)))
+                    buttons = joystick.get_numbuttons()
                     self.g.log("[INFO] Number of buttons: %s"%(buttons))
-                    for i in range(buttons): self.g.log("  [INFO] Button %s value: %s") % (i,joystick.get_button(i))
-                    hats = joystick.numhats()
+                    for i in range(buttons): self.g.log("  [INFO] Button %s value: %s" % (i,joystick.get_button(i)))
+                    hats = joystick.get_numhats()
                     self.g.log("[INFO] Number of hats: %s"%(hats))
-                    for i in range(axes): self.g.log("  [INFO] Hat %s value: %s") % (i,joystick.get_hat(i))
+                    for i in range(hats): self.g.log("  [INFO] Hat %s value: %s" % (i,joystick.get_hat(i)))
         if self.mode == 1:
             self.serial = self.connect()
         self.run()
@@ -326,12 +328,14 @@ class driver:
                 else:
                     pack += str(item.get(keys)) + ';'
             pack += 'z'
-            print(pack)
 
             #send it
             if self.mode == 1:
                 try:
-                    self.serial.write(bytes(pack),'utf-8')
+                    self.serial.write(bytes(pack,'utf-8'))
+                except serial.SerialTimeoutException:
+                    self.g.log("[WARNING] Serial Timed out, attempting to reconnect...",self.g.red)
+                    self.serial = self.connect(True)
                 except Exception as e:
                     self.g.log("[WARNING] Could not send package to robot",self.g.red)
                     self.error(e,False)
@@ -343,10 +347,20 @@ class driver:
         sys.exit()
 
     #connects to robot on COM port
-    def connect(self):
+    def connect(self,reconnect = False):
+        if reconnect:
+            self.g.log("[NOTICE] Trying to auto-reconnect... takes 10-15 seconds",self.g.orange)
+            self.g.render_stack()
+            pygame.display.update()
+            self.serial.close()
+            while self.serial.is_open:
+                time.sleep(0.1)
         try:
-            s = serial.Serial(self.com,self.baudrate)
-            return s
+            s = serial.Serial(self.com,self.baudrate,write_timeout = 0.1)
+            if s.is_open:
+                if reconnect:
+                    self.g.log("[INFO] Reconnected! GoGoGo!",self.g.green)
+                return s
         except:
             self.g.log("[WARNING] Could not connect to robot on specified COM port",self.g.red)
 
@@ -354,13 +368,14 @@ class driver:
             for i in range(1,15):
                 com = "COM" + str(i)
                 try:
-                    s = serial.Serial(com,self.baudrate)
+                    s = serial.Serial(com,self.baudrate,write_timeout = 0.1)
                     return s
                 except:
                     self.g.log("[WARNING] Could not connect to robot on %s"%(com),self.g.red)
-        
-        self.g.log("[WARNING] Could not connect to robot on ANY port",self.g.red)
-        self.error("no serial for 4")
+        if not reconnect:
+            self.g.log("[WARNING] Could not connect to robot on ANY port",self.g.red)
+        if reconnect:
+            return self.connect(True)
 
     #logs an error
     def error(self,e,kill=True):
