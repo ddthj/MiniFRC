@@ -1,0 +1,42 @@
+//This is the configuration file for the MiniFRC Driver Station
+//Any line with a '//' will be ignored (even if it's at the end of the line!)
+
+//This selects the COM port to connect to the robot
+//COM = test can be used to enable test mode where the driver station does not connect to the robot
+//COM = 4
+COM = test
+
+//AUTOPORT will automatically attempt to connect to the robot over multiple COM ports if the specified one fails
+//AUTOPORT = true
+AUTOPORT = false
+
+//BAUD selects the serial baudrate to use, 9600 is default for the HC-06
+BAUD = 9600
+
+//PRECISION selects the level of decimal precision to use with joystick axes. 
+PRECISION = 2
+
+//JOYSTICK enables the use of joysticks. This can be turned off to save some performance when not using joysticks
+//JOYSTICK = false
+JOYSTICK = true
+
+//Here is where you can define the inputs that will be sent to the robot
+//There are keyboard axes and buttons, joystick axes buttons and hats
+//The joystick numberings are printed to console when in test mode with joysticks enabled
+
+button,test,a
+axis, forward, e, d
+axis, left, r, f
+axis, diagonal, t, g
+axis, cheese, y, h
+
+//Button Examples:
+//button, my_button_name, <key>
+//button, my_button_name, <joystick number>, <joystick button number>
+
+//Axes Examples:
+//axis, my_axis_name, <positive key>, <negative key>
+//axis, my_axis_name, <joystick number>, <joystick axis number>
+
+//Hats Example:
+//hat, my_hat_name, <joystick number>, <hat number>
