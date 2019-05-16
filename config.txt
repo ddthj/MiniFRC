@@ -20,15 +20,17 @@ PRECISION = 2
 JOYSTICK = false
 
 //LEGACY mode allows the driver station to work with bots that previously used the MiniFRC-2017 Driver Station
+//All features are still available in legacy mode, the only change is how the packets are sent
 LEGACY = false
 
 //Here is where you can define the inputs that will be sent to the robot
-//There are keyboard axes and buttons, joystick axes buttons and hats
+//There are keyboard axes and buttons, joystick axes buttons and hats, and mode switches
 //The joystick numberings are printed to console when in test mode with joysticks enabled
 
 axis,Forward,w,s
 axis,Left,a,d
 
+//To use a number button on a keyboard, place a # infront of the number. '#4'
 
 //Button Examples:
 //button, my_button_name, <key>
@@ -38,6 +40,11 @@ axis,Left,a,d
 //axis, my_axis_name, <positive key>, <negative key>
 //axis, my_axis_name, <joystick number>, <joystick axis number>
 
-//Warning: Hats are untested and won't render
+//Warning: Hats won't render
 //Hats Example:
 //hat, my_hat_name, <joystick number>, <hat number>
+
+//Mode Switches Examples:
+//you can also mix keys and joysticks
+//mode, my_mode_name, <key>, <key>, <key>, <key>, ...
+//mode, my_mode_name, <joystick number>, <joystick button number>, <joystick number>, <joystick button number>...

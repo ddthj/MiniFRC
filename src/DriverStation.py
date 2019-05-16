@@ -14,7 +14,7 @@ version = 4.1
 #gui deals with the console and anything visible to the user
 class gui:
     def __init__(self):
-        self.resolution = [1000,500]
+        self.resolution = [1100,500]
         
         #setup pygame and window
         pygame.init()
@@ -34,7 +34,7 @@ class gui:
         #console stuff
         self.needs_render = False
         self.stack = []
-        self.width = self.resolution[0] // 2.5
+        self.width = self.resolution[0] // 2.35
         self.scroll = 0
         
     #Adds text to console stack
@@ -57,7 +57,7 @@ class gui:
         self.resolution = [event.dict['size'][0],event.dict['size'][1]]
         self.window = pygame.display.set_mode(self.resolution,pygame.RESIZABLE)
         self.font = pygame.font.SysFont("courier",self.resolution[0]//80)
-        self.width = self.resolution[0] // 2.5
+        self.width = self.resolution[0] // 2.35
         self.needs_render = True
         
 
@@ -79,7 +79,7 @@ class gui:
             text = item[0].split(" ")
             while True:
                 temp = []
-                while self.font.size(" ".join(text))[0] > self.width:
+                while self.font.size(" ".join(text))[0] > self.width-2:
                     temp.append(text.pop())
                 final.append((" ".join(text), item[1]))
                 if len(temp) <= 0:
@@ -144,6 +144,8 @@ class Key:
         self.forward = args[0] #Works with both buttons and axes
         self.backward = args[1] if len(args) > 1 else None
         self.value = 0
+    def error(self):
+        return ": Key %s %s named %s" % (self.forward, self.backward, self.name)
     def get(self,events):
         for event in events:
             if event.type == pygame.KEYDOWN:
@@ -173,9 +175,17 @@ class Joy:
         self.mode = mode#0=joybutton,1=joyaxis,2=joyhat
         self.index = int(index)
         self.value = 0.0
+    def error(self):
+        if self.mode == 0:
+            mode = "button"
+        elif self.mode == 1:
+            mode = "axis"
+        else:
+            mode = "hat"
+        return ": Joystick #%s, %s %s" % (str(self.joynum), mode, str(self.index))
     def get(self,joysticks,prec):
         if self.mode == 0:
-            self.value = joysticks[self.joynum].get_button(self.index),prec
+            self.value = joysticks[self.joynum].get_button(self.index)
             return self.value
         elif self.mode == 1:
             self.value = round(joysticks[self.joynum].get_axis(self.index),prec)
@@ -193,7 +203,25 @@ class Joy:
         else:
             gui.render_hat(self,start)
             return gui.resolution[0] // 15
-        
+
+class Mode:
+    def __init__(self,name,inputs):
+        self.name = name
+        self.inputs = inputs
+        self.value = 0
+    def get(self, events, joysticks, prec):
+        for i in range(len(self.inputs)):
+            if isinstance(self.inputs[i],Joy):
+                if int(self.inputs[i].get(joysticks,prec)) == 1:
+                    self.value = i
+                    return str(i)
+            else:
+                if int(self.inputs[i].get(events)) == 1:
+                    self.value = i
+                    return str(i)
+        return str(self.value)
+    def render(self,gui,start):
+        return gui.resolution[0] // 15
 
 class driver:
     def __init__(self):
@@ -221,8 +249,10 @@ class driver:
             self.error(e)
             
         #parse config file
+        line_num = -1
         try:
             for line in raw:
+                line_num += 1
                 if line.find("COM") != -1:
                     self.com = line.replace("=","")
                     if line.find("test") != -1:
@@ -269,13 +299,31 @@ class driver:
                     data = line.split(",")
                     self.enable_joysticks = True
                     self.inputs.append(Joy(2,data[1],data[2],data[3]))
-                    self.g.log("[INFO] Added a hat switch controlled by joystick #%s hat #%s" %(data[2],data[3]))  
+                    self.g.log("[INFO] Added a hat switch controlled by joystick #%s hat #%s" %(data[2],data[3]))
+                elif line.find("mode") != -1:
+                    data = line.split(",")
+                    temp = []
+                    skip = False
+                    for i in range(2,len(data)):
+                        if skip:
+                            skip = False
+                            continue
+                        if data[i].isdigit():
+                            self.enable_joysticks = True
+                            skip = True
+                            temp.append(Joy(0,data[1],data[i],data[i+1]))
+                        else:
+                            temp.append(Key(data[1],data[i]))
+                    self.inputs.append(Mode(data[1],temp))
+                    self.g.log("[INFO] Added a Mode switch")
         except Exception as e:
             self.g.log("[WARNING] Improperly formatted config file",self.g.red)
+            self.g.log("[WARNING] Could not parse: '%s'" % (str(raw[line_num])),self.g.red)
             self.error(e)
         
         #prep joysticks if enabled
         if self.enable_joysticks == False:
+            self.joysticks = []
             self.g.log("[INFO] Joysticks not enabled")
         else:
             self.g.log("[INFO] Enabled joysticks")
@@ -332,9 +380,35 @@ class driver:
             pack = "z" if self.legacy_packet else "a"
             for item in self.inputs:
                 if isinstance(item,Joy):
-                    pack += str(item.get(self.joysticks,self.precision))+';'
+                    temp = "0"
+                    try:
+                        temp = str(item.get(self.joysticks,self.precision))+';'
+                    except Exception as e:
+                        ez = str(e)
+                        try:
+                            ez += item.error()
+                        except: pass
+                        self.error(ez,True)
+                    pack += temp
+                elif isinstance(item,Key):
+                    temp = "0"
+                    try:
+                        temp = str(item.get(keys)) + ';'
+                    except Exception as e:
+                        ez = str(e)
+                        try:
+                            ez += item.error()
+                        except: pass
+                        self.error(ez,True)
+                    pack += temp
                 else:
-                    pack += str(item.get(keys)) + ';'
+                    temp = "0"
+                    try:
+                        temp = item.get(keys, self.joysticks, self.precision) + ";"
+                    except Exception as e:
+                        self.error(e)
+                    pack += temp
+                        
             pack += 'z' if not self.legacy_packet else ""
 
             #send it
