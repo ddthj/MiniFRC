@@ -238,6 +238,7 @@ class driver:
         self.autoport = False
         self.mode = 1 #0=test, 1=active
         self.com = "COM0"
+        self.FPS = 20
         
         #load config file
         try:
@@ -271,6 +272,9 @@ class driver:
                 elif line.find("BAUD") != -1:
                     self.baudrate = int(line.split("=")[1])
                     self.g.log("[INFO] Configured baudrate to %s"%(self.baudrate))
+                elif line.find("FPS") != -1:
+                    self.FPS = int(line.split("=")[1])
+                    self.g.log("[INFO] Configured FPS to %s"%(self.FPS))
                 elif line.find("PRECISION") != -1:
                     self.precision = int(line.split("=")[1])
                     self.g.log("[INFO] Configured precision to %s"%(self.precision))
@@ -358,8 +362,8 @@ class driver:
         clock = pygame.time.Clock()
         running = True
         while running:
-            #clamp to 20fps
-            clock.tick(30)
+            #clamp to fps
+            clock.tick(self.FPS)
 
             #get all events from pygame, make a list of key events & handle others accordingly
             events = pygame.event.get()

@@ -19,6 +19,10 @@ PRECISION = 2
 //This will automatically enable if any joystick-controlled inputs are present
 JOYSTICK = false
 
+//FPS controlls the target framerate of the driverstation. You can raise it if you want a quicker bot response time
+//but at some point you may be sending data faster than your reciever can read it, which causes weird behavior
+FPS = 20
+
 //LEGACY mode allows the driver station to work with bots that previously used the MiniFRC-2017 Driver Station
 //All features are still available in legacy mode, the only change is how the packets are sent
 LEGACY = false
